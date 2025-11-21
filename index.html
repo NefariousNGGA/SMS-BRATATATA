@@ -62,47 +62,46 @@
             background: #3b82f6;
             transition: width 0.3s ease;
         }
+        .slider-container {
+            position: relative;
+            padding: 20px 0;
+        }
         .slider-track {
             background: #374151;
-            height: 4px;
-            border-radius: 2px;
+            height: 6px;
+            border-radius: 3px;
             position: relative;
             cursor: pointer;
         }
         .slider-thumb {
             background: #3b82f6;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             cursor: grab;
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
             transition: all 0.1s ease;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 2px solid #1e40af;
         }
         .slider-thumb:active {
             cursor: grabbing;
             transform: translate(-50%, -50%) scale(1.1);
         }
-        .slider-dot {
-            width: 8px;
-            height: 8px;
-            background: #4b5563;
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            cursor: pointer;
-            transition: all 0.2s ease;
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            color: #9ca3af;
+            font-size: 12px;
         }
-        .slider-dot.active {
-            background: #3b82f6;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-            transform: translate(-50%, -50%) scale(1.2);
-        }
-        .slider-dot:hover {
-            transform: translate(-50%, -50%) scale(1.3);
+        .slider-value {
+            text-align: center;
+            margin-top: 8px;
+            font-weight: 600;
+            color: #3b82f6;
         }
     </style>
 </head>
@@ -131,15 +130,17 @@
                 
                 <!-- Iterations Slider -->
                 <div>
-                    <label class="block text-gray-300 text-sm mb-2">Iterations: <span id="iterations-value">50</span></label>
-                    <div class="slider-container relative py-4">
+                    <label class="block text-gray-300 text-sm mb-2">Iterations</label>
+                    <div class="slider-container">
                         <div class="slider-track" id="iterations-track">
-                            <div class="slider-dot" data-value="1" style="left: 0%;"></div>
-                            <div class="slider-dot" data-value="25" style="left: 25%;"></div>
-                            <div class="slider-dot active" data-value="50" style="left: 50%;"></div>
-                            <div class="slider-dot" data-value="75" style="left: 75%;"></div>
-                            <div class="slider-dot" data-value="100" style="left: 100%;"></div>
-                            <div class="slider-thumb" id="iterations-thumb" style="left: 50%;"></div>
+                            <div class="slider-thumb" id="iterations-thumb"></div>
+                        </div>
+                        <div class="slider-value">
+                            <span id="iterations-value">50</span>
+                        </div>
+                        <div class="slider-labels">
+                            <span>1</span>
+                            <span>100</span>
                         </div>
                         <input type="hidden" id="iterations" value="50">
                     </div>
@@ -147,13 +148,17 @@
 
                 <!-- Multiplier Slider -->
                 <div>
-                    <label class="block text-gray-300 text-sm mb-2">Multiplier: <span id="multiplier-value">5</span></label>
-                    <div class="slider-container relative py-4">
+                    <label class="block text-gray-300 text-sm mb-2">Multiplier</label>
+                    <div class="slider-container">
                         <div class="slider-track" id="multiplier-track">
-                            <div class="slider-dot" data-value="1" style="left: 0%;"></div>
-                            <div class="slider-dot active" data-value="5" style="left: 50%;"></div>
-                            <div class="slider-dot" data-value="10" style="left: 100%;"></div>
-                            <div class="slider-thumb" id="multiplier-thumb" style="left: 50%;"></div>
+                            <div class="slider-thumb" id="multiplier-thumb"></div>
+                        </div>
+                        <div class="slider-value">
+                            <span id="multiplier-value">5</span>
+                        </div>
+                        <div class="slider-labels">
+                            <span>1</span>
+                            <span>10</span>
                         </div>
                         <input type="hidden" id="multiplier" value="5">
                     </div>
@@ -343,43 +348,34 @@
 
         // Slider functionality
         function initSliders() {
-            function setupSlider(trackId, thumbId, valueDisplayId, inputId, values, defaultValue) {
+            function setupSlider(trackId, thumbId, valueDisplayId, inputId, min, max, defaultValue) {
                 const track = document.getElementById(trackId);
                 const thumb = document.getElementById(thumbId);
                 const valueDisplay = document.getElementById(valueDisplayId);
                 const input = document.getElementById(inputId);
-                const dots = track.querySelectorAll('.slider-dot');
                 let isDragging = false;
 
                 function updateSlider(value) {
-                    input.value = value;
-                    valueDisplay.textContent = value;
-                    
-                    // Update active dot
-                    dots.forEach(d => d.classList.remove('active'));
-                    const activeDot = Array.from(dots).find(d => parseInt(d.dataset.value) === value);
-                    if (activeDot) activeDot.classList.add('active');
+                    const clampedValue = Math.max(min, Math.min(max, value));
+                    input.value = clampedValue;
+                    valueDisplay.textContent = clampedValue;
                     
                     // Update thumb position
-                    const index = values.indexOf(value);
-                    const percentage = (index / (values.length - 1)) * 100;
+                    const percentage = ((clampedValue - min) / (max - min)) * 100;
                     thumb.style.left = `${percentage}%`;
                 }
 
-                // Click on dots
-                dots.forEach(dot => {
-                    dot.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        updateSlider(parseInt(dot.dataset.value));
-                    });
-                });
+                function getValueFromPosition(x) {
+                    const rect = track.getBoundingClientRect();
+                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                    const value = min + (percentage / 100) * (max - min);
+                    return Math.round(value);
+                }
 
                 // Click on track
                 track.addEventListener('click', (e) => {
-                    const rect = track.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-                    snapToNearest(percentage);
+                    const value = getValueFromPosition(e.clientX - track.getBoundingClientRect().left);
+                    updateSlider(value);
                 });
 
                 // Drag functionality
@@ -399,18 +395,16 @@
 
                 function onMouseMove(e) {
                     if (!isDragging) return;
-                    const rect = track.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-                    snapToNearest(percentage);
+                    const value = getValueFromPosition(e.clientX - track.getBoundingClientRect().left);
+                    updateSlider(value);
                 }
 
                 function onTouchMove(e) {
                     if (!isDragging) return;
                     const rect = track.getBoundingClientRect();
                     const x = e.touches[0].clientX - rect.left;
-                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-                    snapToNearest(percentage);
+                    const value = getValueFromPosition(x);
+                    updateSlider(value);
                 }
 
                 function onMouseUp() {
@@ -425,20 +419,13 @@
                     document.removeEventListener('touchend', onTouchEnd);
                 }
 
-                function snapToNearest(percentage) {
-                    const segmentWidth = 100 / (values.length - 1);
-                    const nearestIndex = Math.round(percentage / segmentWidth);
-                    const snappedValue = values[nearestIndex];
-                    updateSlider(snappedValue);
-                }
-
                 // Initialize with default value
                 updateSlider(defaultValue);
             }
 
             // Setup both sliders
-            setupSlider('iterations-track', 'iterations-thumb', 'iterations-value', 'iterations', [1, 25, 50, 75, 100], 50);
-            setupSlider('multiplier-track', 'multiplier-thumb', 'multiplier-value', 'multiplier', [1, 5, 10], 5);
+            setupSlider('iterations-track', 'iterations-thumb', 'iterations-value', 'iterations', 1, 100, 50);
+            setupSlider('multiplier-track', 'multiplier-thumb', 'multiplier-value', 'multiplier', 1, 10, 5);
         }
 
         function renderServices() {
