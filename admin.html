@@ -49,6 +49,10 @@
             border-left-color: #ff4444;
             opacity: 0.6;
         }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="p-4 flex items-center justify-center min-h-screen">
@@ -113,7 +117,7 @@
                         >
                     </div>
                     <div class="flex items-end">
-                        <button onclick="generateKey()" class="btn-primary w-full p-3 rounded font-semibold">
+                        <button onclick="generateKey()" id="generate-btn" class="btn-primary w-full p-3 rounded font-semibold">
                             GENERATE KEY
                         </button>
                     </div>
@@ -148,7 +152,7 @@
 
     <script>
         // Admin password - CHANGE THIS!
-        const ADMIN_PASSWORD = "Haru Urara";
+        const ADMIN_PASSWORD = "garou123";
         
         // Check if user is already logged in
         document.addEventListener('DOMContentLoaded', function() {
@@ -185,7 +189,8 @@
             loadKeys();
         }
 
-        function generateKey() {
+        // SHARED STORAGE FUNCTIONS
+        async function generateKey() {
             const duration = parseInt(document.getElementById('key-duration').value);
             const maxAttacks = parseInt(document.getElementById('max-attacks').value);
             
@@ -193,21 +198,55 @@
             const hash = Math.random().toString(36).substring(2, 8);
             const newKey = prefix + hash;
             
-            // Calculate expiration date
-            const expires = duration === 9999 ? null : new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
+            // Show loading
+            document.getElementById('generate-btn').classList.add('loading');
+            document.getElementById('generate-btn').textContent = 'Generating...';
             
-            // Save key
-            saveKey(newKey, duration, maxAttacks, expires);
-            
-            // Show new key
-            document.getElementById('new-key').textContent = newKey;
-            document.getElementById('new-key-container').classList.remove('hidden');
-            
-            // Reload keys list
-            loadKeys();
+            try {
+                // Save to shared storage (Netlify Function)
+                const response = await fetch('/.netlify/functions/save-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        key: newKey, 
+                        duration: duration, 
+                        maxAttacks: maxAttacks 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Show new key
+                    document.getElementById('new-key').textContent = newKey;
+                    document.getElementById('new-key-container').classList.remove('hidden');
+                    
+                    // Also save to localStorage as backup
+                    saveToLocalStorage(newKey, duration, maxAttacks);
+                    
+                    // Reload keys list
+                    await loadKeys();
+                } else {
+                    alert('❌ Failed to save key: ' + result.error);
+                }
+                
+            } catch (error) {
+                alert('❌ Network error. Using localStorage only.');
+                // Fallback to localStorage
+                saveToLocalStorage(newKey, duration, maxAttacks);
+                document.getElementById('new-key').textContent = newKey;
+                document.getElementById('new-key-container').classList.remove('hidden');
+                loadKeys();
+            } finally {
+                // Reset button
+                document.getElementById('generate-btn').classList.remove('loading');
+                document.getElementById('generate-btn').textContent = 'GENERATE KEY';
+            }
         }
 
-        function saveKey(key, duration, maxAttacks, expires) {
+        // Fallback to localStorage
+        function saveToLocalStorage(key, duration, maxAttacks) {
+            const expires = duration === 9999 ? null : new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
             const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
             keys[key] = {
                 created: new Date().toISOString(),
@@ -220,8 +259,27 @@
             localStorage.setItem('garou-keys', JSON.stringify(keys));
         }
 
-        function loadKeys() {
-            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+        async function loadKeys() {
+            try {
+                // Try to load from shared storage first
+                const response = await fetch('/.netlify/functions/get-keys');
+                const data = await response.json();
+                
+                if (data.success && data.keys) {
+                    displayKeys(data.keys);
+                } else {
+                    // Fallback to localStorage
+                    const localKeys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+                    displayKeys(localKeys);
+                }
+            } catch (error) {
+                // Fallback to localStorage
+                const localKeys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+                displayKeys(localKeys);
+            }
+        }
+
+        function displayKeys(keys) {
             const keysList = document.getElementById('keys-list');
             keysList.innerHTML = '';
 
@@ -275,26 +333,53 @@
             document.getElementById('active-keys').textContent = active;
         }
 
-        function revokeKey(key) {
-            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-            keys[key].active = !keys[key].active;
-            localStorage.setItem('garou-keys', JSON.stringify(keys));
+        async function revokeKey(key) {
+            try {
+                await fetch('/.netlify/functions/update-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, action: 'revoke' })
+                });
+            } catch (error) {
+                // Fallback to localStorage
+                const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+                keys[key].active = !keys[key].active;
+                localStorage.setItem('garou-keys', JSON.stringify(keys));
+            }
             loadKeys();
         }
 
-        function deleteKey(key) {
+        async function deleteKey(key) {
             if (confirm(`Permanently delete key ${key}? This cannot be undone!`)) {
-                const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                delete keys[key];
-                localStorage.setItem('garou-keys', JSON.stringify(keys));
+                try {
+                    await fetch('/.netlify/functions/update-key', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ key, action: 'delete' })
+                    });
+                } catch (error) {
+                    // Fallback to localStorage
+                    const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+                    delete keys[key];
+                    localStorage.setItem('garou-keys', JSON.stringify(keys));
+                }
                 loadKeys();
             }
         }
 
-        function resetKey(key) {
-            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-            keys[key].usedAttacks = 0;
-            localStorage.setItem('garou-keys', JSON.stringify(keys));
+        async function resetKey(key) {
+            try {
+                await fetch('/.netlify/functions/update-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, action: 'reset' })
+                });
+            } catch (error) {
+                // Fallback to localStorage
+                const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+                keys[key].usedAttacks = 0;
+                localStorage.setItem('garou-keys', JSON.stringify(keys));
+            }
             loadKeys();
         }
 
