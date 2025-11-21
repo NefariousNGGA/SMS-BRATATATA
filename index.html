@@ -64,7 +64,7 @@
         }
         .slider-container {
             position: relative;
-            padding: 15px 0 5px 0;
+            padding: 8px 0 2px 0;
         }
         .slider-track {
             background: #374151;
@@ -76,15 +76,15 @@
         }
         .slider-thumb {
             background: #3b82f6;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             cursor: grab;
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
             transition: all 0.1s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             border: 2px solid #1e40af;
         }
         .slider-thumb:active {
@@ -94,46 +94,49 @@
         .slider-labels {
             display: flex;
             justify-content: space-between;
-            margin-top: 8px;
+            margin-top: 4px;
             color: #9ca3af;
-            font-size: 12px;
+            font-size: 11px;
             padding: 0 8px;
         }
         .slider-value {
             text-align: center;
-            margin-top: 8px;
+            margin-top: 4px;
             font-weight: 600;
             color: #3b82f6;
-            font-size: 14px;
+            font-size: 13px;
+        }
+        .config-section {
+            margin-bottom: 12px;
         }
     </style>
 </head>
 <body class="p-4 flex items-center justify-center">
     <div class="w-full max-w-2xl">
         <!-- Header -->
-        <div class="card rounded-lg p-6 mb-6 text-center">
+        <div class="card rounded-lg p-6 mb-4 text-center">
             <h1 class="doom-font text-3xl text-gray-200 mb-2 tracking-wider">SMS BOMBERO</h1>
             <p class="text-gray-400 text-sm italic">"Intelligence is a tool, not a virtue - it serves both creator and destroyer equally"</p>
         </div>
 
         <!-- Configuration -->
-        <div class="card rounded-lg p-6 mb-6">
-            <h2 class="text-lg font-medium text-gray-200 mb-4">Target Configuration</h2>
+        <div class="card rounded-lg p-6 mb-4">
+            <h2 class="text-lg font-medium text-gray-200 mb-3">Target Configuration</h2>
             
-            <div class="grid grid-cols-1 gap-4 mb-4">
-                <div>
-                    <label class="block text-gray-300 text-sm mb-2">Phone Number</label>
+            <div class="grid grid-cols-1 gap-3 mb-3">
+                <div class="config-section">
+                    <label class="block text-gray-300 text-sm mb-1">Phone Number</label>
                     <input 
                         type="text" 
                         id="target-number" 
                         placeholder="09XXXXXXXXX or +639XXXXXXXXX"
-                        class="input-field w-full p-3 rounded text-sm"
+                        class="input-field w-full p-2 rounded text-sm"
                     >
                 </div>
                 
                 <!-- Iterations Slider -->
-                <div>
-                    <label class="block text-gray-300 text-sm mb-2">Iterations</label>
+                <div class="config-section">
+                    <label class="block text-gray-300 text-sm mb-1">Iterations</label>
                     <div class="slider-container">
                         <div class="slider-track" id="iterations-track">
                             <div class="slider-thumb" id="iterations-thumb"></div>
@@ -143,6 +146,7 @@
                         </div>
                         <div class="slider-labels">
                             <span>1</span>
+                            <span>50</span>
                             <span>100</span>
                         </div>
                         <input type="hidden" id="iterations" value="50">
@@ -150,8 +154,8 @@
                 </div>
 
                 <!-- Multiplier Slider -->
-                <div>
-                    <label class="block text-gray-300 text-sm mb-2">Multiplier</label>
+                <div class="config-section">
+                    <label class="block text-gray-300 text-sm mb-1">Multiplier</label>
                     <div class="slider-container">
                         <div class="slider-track" id="multiplier-track">
                             <div class="slider-thumb" id="multiplier-thumb"></div>
@@ -161,6 +165,7 @@
                         </div>
                         <div class="slider-labels">
                             <span>1</span>
+                            <span>5</span>
                             <span>10</span>
                         </div>
                         <input type="hidden" id="multiplier" value="5">
@@ -169,24 +174,24 @@
             </div>
 
             <!-- Service Selection -->
-            <div class="mb-4">
-                <label class="block text-gray-300 text-sm mb-2">API Selection</label>
-                <div id="service-list" class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-3 card rounded">
+            <div class="config-section">
+                <label class="block text-gray-300 text-sm mb-1">API Selection</label>
+                <div id="service-list" class="grid grid-cols-2 gap-2 max-h-28 overflow-y-auto p-2 card rounded">
                     <!-- Services load here -->
                 </div>
             </div>
 
-            <button onclick="startTest()" id="start-button" class="btn-primary w-full p-3 rounded text-sm font-medium">
+            <button onclick="startTest()" id="start-button" class="btn-primary w-full p-2 rounded text-sm font-medium mt-2">
                 Start Testing
             </button>
         </div>
 
         <!-- Progress -->
-        <div id="test-progress" class="card rounded-lg p-6 mb-6 hidden">
-            <h2 class="text-lg font-medium text-gray-200 mb-4">Test Progress</h2>
+        <div id="test-progress" class="card rounded-lg p-4 mb-4 hidden">
+            <h2 class="text-lg font-medium text-gray-200 mb-3">Test Progress</h2>
             
-            <div class="mb-4">
-                <div class="flex justify-between text-gray-300 text-sm mb-2">
+            <div class="mb-3">
+                <div class="flex justify-between text-gray-300 text-sm mb-1">
                     <span>Completion</span>
                     <span id="progress-text">0%</span>
                 </div>
@@ -195,32 +200,32 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 text-center mb-4">
-                <div class="card p-3">
-                    <div class="text-blue-400 font-medium" id="success-count">0</div>
+            <div class="grid grid-cols-2 gap-3 text-center mb-3">
+                <div class="card p-2">
+                    <div class="text-blue-400 font-medium text-sm" id="success-count">0</div>
                     <div class="text-gray-400 text-xs">Successful</div>
                 </div>
-                <div class="card p-3">
-                    <div class="text-red-400 font-medium" id="fail-count">0</div>
+                <div class="card p-2">
+                    <div class="text-red-400 font-medium text-sm" id="fail-count">0</div>
                     <div class="text-gray-400 text-xs">Failed</div>
                 </div>
             </div>
 
             <div class="text-center">
-                <div id="current-batch" class="text-gray-400 text-sm mb-3">Initializing...</div>
-                <button onclick="stopTest()" class="btn-danger w-full p-2 rounded text-sm">
+                <div id="current-batch" class="text-gray-400 text-xs mb-2">Initializing...</div>
+                <button onclick="stopTest()" class="btn-danger w-full p-2 rounded text-xs">
                     Stop Testing
                 </button>
             </div>
         </div>
 
         <!-- Results -->
-        <div id="test-results" class="card rounded-lg p-6 mb-6 hidden">
-            <h2 class="text-lg font-medium text-gray-200 mb-4">Test Results</h2>
+        <div id="test-results" class="card rounded-lg p-4 mb-4 hidden">
+            <h2 class="text-lg font-medium text-gray-200 mb-3">Test Results</h2>
             <div class="text-center">
-                <div class="text-2xl font-medium text-gray-200 mb-2" id="total-requests">0</div>
-                <div class="text-gray-400 text-sm mb-4">Total API Calls</div>
-                <div class="text-sm">
+                <div class="text-xl font-medium text-gray-200 mb-1" id="total-requests">0</div>
+                <div class="text-gray-400 text-xs mb-3">Total API Calls</div>
+                <div class="text-xs">
                     <span class="text-blue-400">✓ <span id="result-success">0</span> successful</span> | 
                     <span class="text-red-400">✗ <span id="result-fail">0</span> failed</span>
                 </div>
