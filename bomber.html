@@ -81,7 +81,7 @@
             
             <div class="mt-6 text-center text-xs text-gray-500">
                 <p>Get your key from the Garou Admin Panel</p>
-                <p>Attacks are limited per key</p>
+                <p>Keys are validated against real database</p>
             </div>
         </div>
 
@@ -212,7 +212,7 @@
         let currentBatch = 0;
         let totalBatches = 0;
 
-        // Key Validation
+        // Key Validation - NOW USING REAL DATABASE
         async function validateKey() {
             const userKey = document.getElementById('user-key').value.trim();
             const errorDiv = document.getElementById('key-error');
@@ -246,6 +246,9 @@
                     
                     // Store key in session
                     sessionStorage.setItem('garou-key', userKey);
+                    sessionStorage.setItem('garou-attacks-left', data.attacksLeft);
+                    
+                    alert('✅ Key validated successfully! Attacks left: ' + data.attacksLeft);
                 } else {
                     errorDiv.textContent = '❌ ' + (data.error || 'Invalid or expired key');
                     errorDiv.classList.remove('hidden');
@@ -353,7 +356,7 @@
             }
         }
 
-        // Attack Functions
+        // Attack Functions - NOW WITH REAL USAGE TRACKING
         async function startAttack() {
             if (isAttacking) return;
             
@@ -374,6 +377,15 @@
             const normalizedPhone = normalizePhoneNumber(target);
             if (!normalizedPhone) {
                 alert('❌ Invalid phone number format. Use: 09xx, 639xx, or +639xx');
+                return;
+            }
+
+            // Check attacks left
+            const attacksLeft = parseInt(document.getElementById('attacks-left').textContent);
+            const totalAttacksNeeded = batches * selectedServices.length;
+            
+            if (attacksLeft < totalAttacksNeeded) {
+                alert(`❌ Not enough attacks left! Need ${totalAttacksNeeded}, but only ${attacksLeft} available.`);
                 return;
             }
 
@@ -413,8 +425,12 @@
                 
                 updateProgress(i, batches);
                 
-                // Track usage
+                // Track usage in REAL DATABASE
                 await trackUsage(selectedServices.length);
+                
+                // Update attacks left display
+                const newAttacksLeft = attacksLeft - (i * selectedServices.length);
+                document.getElementById('attacks-left').textContent = Math.max(0, newAttacksLeft);
                 
                 // Delay between batches (2 seconds)
                 if (i < batches && isAttacking) {
@@ -470,6 +486,7 @@
             isAttacking = false;
             
             sessionStorage.removeItem('garou-key');
+            sessionStorage.removeItem('garou-attacks-left');
             document.getElementById('bomber-app').classList.add('hidden');
             document.getElementById('key-gate').classList.remove('hidden');
             document.getElementById('user-key').value = '';
@@ -481,6 +498,7 @@
         // Check if already logged in
         document.addEventListener('DOMContentLoaded', function() {
             const savedKey = sessionStorage.getItem('garou-key');
+            const savedAttacks = sessionStorage.getItem('garou-attacks-left');
             if (savedKey) {
                 document.getElementById('user-key').value = savedKey;
                 validateKey();
