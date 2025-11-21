@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garou Bomber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+        body { 
+            font-family: 'JetBrains Mono', monospace; 
+            background: #0a0a0a; 
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .terminal { 
+            border: 1px solid #00ff00; 
+            background: #111; 
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+        .input-field {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            color: #00ff00;
+        }
+        .input-field:focus {
+            border-color: #00ff00;
+            box-shadow: 0 0 5px #00ff00;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff00, #00cc00);
+            color: #000;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #00cc00, #009900);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: white;
+        }
+        .service-item {
+            background: #1a1a1a;
+            border-left: 4px solid #00ff00;
+            transition: all 0.2s;
+        }
+        .service-item.selected {
+            background: rgba(0, 255, 255, 0.1);
+            border-left: 4px solid #00ffff;
+        }
+        .progress-bar {
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff00, #00ffff);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="p-4 flex items-center justify-center min-h-screen">
+    <div class="terminal w-full max-w-2xl p-6 rounded-lg">
+        <!-- Key Gate -->
+        <div id="key-gate">
+            <h1 class="text-3xl font-bold text-green-500 text-center mb-2">🐺 GAROU BOMBER</h1>
+            <p class="text-center text-gray-400 mb-6">Enter your Garou key to continue</p>
+            
+            <input 
+                type="text" 
+                id="user-key" 
+                placeholder="Garou-XXXXXX" 
+                class="input-field w-full p-4 rounded mb-4 text-center text-lg"
+            >
+            <button onclick="validateKey()" class="btn-primary w-full p-4 rounded font-bold text-lg">
+                🔓 UNLOCK BOMBER
+            </button>
+            
+            <div id="key-error" class="hidden mt-4 p-3 bg-red-900 border border-red-500 rounded text-red-400 text-center"></div>
+            
+            <div class="mt-6 text-center text-xs text-gray-500">
+                <p>Get your key from the Garou Admin Panel</p>
+                <p>Attacks are limited per key</p>
+            </div>
+        </div>
+
+        <!-- Bomber App (Hidden until key validated) -->
+        <div id="bomber-app" class="hidden">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-green-500">🚀 GAROU BOMBER</h1>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Key: <span id="user-key-display" class="text-green-400"></span></div>
+                    <div class="text-sm text-yellow-400">Attacks left: <span id="attacks-left">0</span></div>
+                </div>
+            </div>
+
+            <!-- Attack Configuration -->
+            <div class="mb-6 p-4 border border-cyan-500 rounded">
+                <h2 class="text-lg font-semibold text-cyan-400 mb-4">ATTACK CONFIGURATION</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Target Number</label>
+                        <input 
+                            type="text" 
+                            id="target-number" 
+                            placeholder="09XXXXXXXXX / +639XXXXXXXXX"
+                            class="input-field w-full p-3 rounded"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Batch Amount (1-50)</label>
+                        <input 
+                            type="number" 
+                            id="batch-amount" 
+                            value="10"
+                            min="1"
+                            max="50"
+                            class="input-field w-full p-3 rounded"
+                        >
+                    </div>
+                </div>
+
+                <!-- Service Selection -->
+                <div class="mb-4">
+                    <label class="block text-sm text-gray-400 mb-2">Services (Tap to select/deselect)</label>
+                    <div id="service-list" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-gray-700 rounded">
+                        <!-- Services will be loaded here -->
+                    </div>
+                </div>
+
+                <button onclick="startAttack()" id="start-button" class="btn-primary w-full p-3 rounded font-semibold">
+                    🚀 INITIATE ATTACK
+                </button>
+            </div>
+
+            <!-- Attack Progress -->
+            <div id="attack-progress" class="hidden mb-6 p-4 border border-yellow-500 rounded">
+                <h2 class="text-lg font-semibold text-yellow-400 mb-4">ATTACK IN PROGRESS</h2>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Progress</span>
+                        <span id="progress-text">0%</span>
+                    </div>
+                    <div class="progress-bar h-3">
+                        <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-center">
+                    <div class="p-2 bg-green-900/30 rounded">
+                        <div class="text-lg font-bold text-green-400" id="success-count">0</div>
+                        <div class="text-xs">SUCCESS</div>
+                    </div>
+                    <div class="p-2 bg-red-900/30 rounded">
+                        <div class="text-lg font-bold text-red-400" id="fail-count">0</div>
+                        <div class="text-xs">FAILED</div>
+                    </div>
+                </div>
+
+                <button onclick="stopAttack()" class="btn-danger w-full mt-4 p-2 rounded">
+                    ⏹️ STOP ATTACK
+                </button>
+            </div>
+
+            <!-- Results -->
+            <div id="attack-results" class="hidden mb-6 p-4 border border-green-500 rounded">
+                <h2 class="text-lg font-semibold text-green-400 mb-4">ATTACK COMPLETE</h2>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-400 mb-2" id="total-requests">0</div>
+                    <div class="text-sm text-gray-400">Total requests sent</div>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="text-center">
+                <button onclick="logout()" class="btn-danger px-6 py-2 rounded">
+                    🔒 LOGOUT
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API Endpoints (Excluding the ones you wanted to remove)
+        const API_ENDPOINTS_MAP = {
+            "XPRESS": "https://api.xpress.ph/v1/api/XpressUser/CreateUser/SendOtp",
+            "ABENSON": "https://api.mobile.abenson.com/api/public/membership/activate_otp",
+            "EXCELLENT_LENDING": "https://api.excellenteralending.com/dllin/union/rehabilitation/dock",
+            "FORTUNE_PAY": "https://api.fortunepay.com.ph/customer/v2/api/public/service/customer/register",
+            "LBC": "https://lbcconnect.lbcapps.com/lbcconnectAPISprint2BPSGC/AClientThree/processInitRegistrationVerification",
+            "PICKUP_COFFEE": "https://production.api.pickup-coffee.net/v2/customers/login",
+            "HONEY_LOAN": "https://api.honeyloan.ph/api/client/registration/step-one",
+            "KOMO_PH": "https://api.komo.ph/api/otp/v5/generate",
+            "CALL_BOMB": "https://call-bomb.onrender.com/",
+        };
+
+        let currentUserKey = '';
+        let selectedServices = Object.keys(API_ENDPOINTS_MAP);
+        let isAttacking = false;
+        let attackStats = { success: 0, failed: 0 };
+
+        // Key Validation
+        async function validateKey() {
+            const userKey = document.getElementById('user-key').value.trim();
+            const errorDiv = document.getElementById('key-error');
+            
+            if (!userKey.startsWith('Garou-')) {
+                errorDiv.textContent = '❌ Invalid key format. Must start with "Garou-"';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch('/.netlify/functions/validate-key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: userKey })
+                });
+
+                const data = await response.json();
+
+                if (data.valid) {
+                    currentUserKey = userKey;
+                    
+                    // Show bomber app
+                    document.getElementById('key-gate').classList.add('hidden');
+                    document.getElementById('bomber-app').classList.remove('hidden');
+                    document.getElementById('user-key-display').textContent = userKey;
+                    document.getElementById('attacks-left').textContent = data.attacksLeft;
+                    
+                    // Initialize services
+                    renderServices();
+                    
+                    // Store key in session
+                    sessionStorage.setItem('garou-key', userKey);
+                } else {
+                    errorDiv.textContent = '❌ ' + (data.error || 'Invalid or expired key');
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorDiv.textContent = '❌ Network error. Please try again.';
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        // Service Management
+        function renderServices() {
+            const serviceList = document.getElementById('service-list');
+            serviceList.innerHTML = '';
+            
+            Object.keys(API_ENDPOINTS_MAP).forEach(service => {
+                const isSelected = selectedServices.includes(service);
+                const serviceItem = document.createElement('div');
+                serviceItem.className = `service-item p-2 rounded cursor-pointer text-sm ${isSelected ? 'selected' : 'text-gray-400'}`;
+                serviceItem.textContent = service.replace(/_/g, ' ');
+                serviceItem.onclick = () => toggleService(service);
+                serviceList.appendChild(serviceItem);
+            });
+        }
+
+        function toggleService(service) {
+            const index = selectedServices.indexOf(service);
+            if (index > -1) {
+                selectedServices.splice(index, 1);
+            } else {
+                selectedServices.push(service);
+            }
+            renderServices();
+        }
+
+        // Attack Functions
+        async function startAttack() {
+            if (isAttacking) return;
+            
+            const target = document.getElementById('target-number').value.trim();
+            const batches = parseInt(document.getElementById('batch-amount').value);
+            
+            if (!target) {
+                alert('❌ Please enter a target number');
+                return;
+            }
+            
+            if (selectedServices.length === 0) {
+                alert('❌ Please select at least one service');
+                return;
+            }
+
+            // Start attack
+            isAttacking = true;
+            attackStats = { success: 0, failed: 0 };
+            
+            document.getElementById('attack-configuration').classList.add('hidden');
+            document.getElementById('attack-progress').classList.remove('hidden');
+            document.getElementById('attack-results').classList.add('hidden');
+            document.getElementById('start-button').disabled = true;
+            
+            updateProgress(0, batches);
+            
+            // Simulate attack (replace with real API calls)
+            for (let i = 1; i <= batches && isAttacking; i++) {
+                // Simulate API calls
+                const batchSuccess = Math.floor(Math.random() * selectedServices.length * 0.7);
+                const batchFail = selectedServices.length - batchSuccess;
+                
+                attackStats.success += batchSuccess;
+                attackStats.failed += batchFail;
+                
+                updateProgress(i, batches);
+                
+                // Track usage
+                await trackUsage(selectedServices.length);
+                
+                // Delay between batches
+                if (i < batches && isAttacking) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            
+            // Attack complete
+            isAttacking = false;
+            document.getElementById('attack-progress').classList.add('hidden');
+            document.getElementById('attack-results').classList.remove('hidden');
+            document.getElementById('start-button').disabled = false;
+            
+            document.getElementById('total-requests').textContent = attackStats.success + attackStats.failed;
+        }
+
+        function stopAttack() {
+            isAttacking = false;
+            document.getElementById('attack-progress').classList.add('hidden');
+            document.getElementById('attack-configuration').classList.remove('hidden');
+            document.getElementById('start-button').disabled = false;
+        }
+
+        function updateProgress(current, total) {
+            const percent = (current / total) * 100;
+            document.getElementById('progress-text').textContent = `${Math.round(percent)}%`;
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            document.getElementById('success-count').textContent = attackStats.success;
+            document.getElementById('fail-count').textContent = attackStats.failed;
+        }
+
+        async function trackUsage(attacksUsed = 1) {
+            try {
+                await fetch('/.netlify/functions/track-usage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        key: currentUserKey, 
+                        attacksUsed: attacksUsed 
+                    })
+                });
+            } catch (error) {
+                console.error('Usage tracking failed:', error);
+            }
+        }
+
+        function logout() {
+            currentUserKey = '';
+            selectedServices = Object.keys(API_ENDPOINTS_MAP);
+            isAttacking = false;
+            
+            sessionStorage.removeItem('garou-key');
+            document.getElementById('bomber-app').classList.add('hidden');
+            document.getElementById('key-gate').classList.remove('hidden');
+            document.getElementById('user-key').value = '';
+            document.getElementById('key-error').classList.add('hidden');
+            document.getElementById('attack-progress').classList.add('hidden');
+            document.getElementById('attack-results').classList.add('hidden');
+        }
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedKey = sessionStorage.getItem('garou-key');
+            if (savedKey) {
+                document.getElementById('user-key').value = savedKey;
+                validateKey();
+            }
+        });
+    </script>
+</body>
+  </html>
