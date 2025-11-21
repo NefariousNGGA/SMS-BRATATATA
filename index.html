@@ -66,23 +66,43 @@
             background: #374151;
             height: 4px;
             border-radius: 2px;
+            position: relative;
+            cursor: pointer;
         }
         .slider-thumb {
             background: #3b82f6;
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            cursor: pointer;
+            cursor: grab;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .slider-thumb:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.1);
         }
         .slider-dot {
             width: 8px;
             height: 8px;
             background: #4b5563;
             border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
         .slider-dot.active {
             background: #3b82f6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        .slider-dot:hover {
+            transform: translate(-50%, -50%) scale(1.3);
         }
     </style>
 </head>
@@ -113,15 +133,13 @@
                 <div>
                     <label class="block text-gray-300 text-sm mb-2">Iterations: <span id="iterations-value">50</span></label>
                     <div class="slider-container relative py-4">
-                        <div class="slider-track relative">
-                            <div class="absolute inset-0 flex justify-between items-center px-2">
-                                <div class="slider-dot" data-value="1"></div>
-                                <div class="slider-dot" data-value="25"></div>
-                                <div class="slider-dot active" data-value="50"></div>
-                                <div class="slider-dot" data-value="75"></div>
-                                <div class="slider-dot" data-value="100"></div>
-                            </div>
-                            <div class="slider-thumb absolute top-1/2 transform -translate-y-1/2" style="left: 49%;"></div>
+                        <div class="slider-track" id="iterations-track">
+                            <div class="slider-dot" data-value="1" style="left: 0%;"></div>
+                            <div class="slider-dot" data-value="25" style="left: 25%;"></div>
+                            <div class="slider-dot active" data-value="50" style="left: 50%;"></div>
+                            <div class="slider-dot" data-value="75" style="left: 75%;"></div>
+                            <div class="slider-dot" data-value="100" style="left: 100%;"></div>
+                            <div class="slider-thumb" id="iterations-thumb" style="left: 50%;"></div>
                         </div>
                         <input type="hidden" id="iterations" value="50">
                     </div>
@@ -131,13 +149,11 @@
                 <div>
                     <label class="block text-gray-300 text-sm mb-2">Multiplier: <span id="multiplier-value">5</span></label>
                     <div class="slider-container relative py-4">
-                        <div class="slider-track relative">
-                            <div class="absolute inset-0 flex justify-between items-center px-2">
-                                <div class="slider-dot" data-value="1"></div>
-                                <div class="slider-dot active" data-value="5"></div>
-                                <div class="slider-dot" data-value="10"></div>
-                            </div>
-                            <div class="slider-thumb absolute top-1/2 transform -translate-y-1/2" style="left: 50%;"></div>
+                        <div class="slider-track" id="multiplier-track">
+                            <div class="slider-dot" data-value="1" style="left: 0%;"></div>
+                            <div class="slider-dot active" data-value="5" style="left: 50%;"></div>
+                            <div class="slider-dot" data-value="10" style="left: 100%;"></div>
+                            <div class="slider-thumb" id="multiplier-thumb" style="left: 50%;"></div>
                         </div>
                         <input type="hidden" id="multiplier" value="5">
                     </div>
@@ -327,42 +343,102 @@
 
         // Slider functionality
         function initSliders() {
-            // Iterations slider
-            const iterationsSlider = document.querySelector('#iterations').closest('.slider-container');
-            const iterationsThumb = iterationsSlider.querySelector('.slider-thumb');
-            const iterationsValue = document.getElementById('iterations-value');
-            const iterationsInput = document.getElementById('iterations');
-            
-            // Multiplier slider
-            const multiplierSlider = document.querySelector('#multiplier').closest('.slider-container');
-            const multiplierThumb = multiplierSlider.querySelector('.slider-thumb');
-            const multiplierValue = document.getElementById('multiplier-value');
-            const multiplierInput = document.getElementById('multiplier');
+            function setupSlider(trackId, thumbId, valueDisplayId, inputId, values, defaultValue) {
+                const track = document.getElementById(trackId);
+                const thumb = document.getElementById(thumbId);
+                const valueDisplay = document.getElementById(valueDisplayId);
+                const input = document.getElementById(inputId);
+                const dots = track.querySelectorAll('.slider-dot');
+                let isDragging = false;
 
-            function setupSlider(container, thumb, valueDisplay, input, values, defaultValue) {
-                const dots = container.querySelectorAll('.slider-dot');
-                
+                function updateSlider(value) {
+                    input.value = value;
+                    valueDisplay.textContent = value;
+                    
+                    // Update active dot
+                    dots.forEach(d => d.classList.remove('active'));
+                    const activeDot = Array.from(dots).find(d => parseInt(d.dataset.value) === value);
+                    if (activeDot) activeDot.classList.add('active');
+                    
+                    // Update thumb position
+                    const index = values.indexOf(value);
+                    const percentage = (index / (values.length - 1)) * 100;
+                    thumb.style.left = `${percentage}%`;
+                }
+
+                // Click on dots
                 dots.forEach(dot => {
-                    dot.addEventListener('click', () => {
-                        const value = parseInt(dot.dataset.value);
-                        input.value = value;
-                        valueDisplay.textContent = value;
-                        
-                        // Update active dot
-                        dots.forEach(d => d.classList.remove('active'));
-                        dot.classList.add('active');
-                        
-                        // Update thumb position
-                        const index = values.indexOf(value);
-                        const percentage = (index / (values.length - 1)) * 100;
-                        thumb.style.left = `${percentage}%`;
+                    dot.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateSlider(parseInt(dot.dataset.value));
                     });
                 });
+
+                // Click on track
+                track.addEventListener('click', (e) => {
+                    const rect = track.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                    snapToNearest(percentage);
+                });
+
+                // Drag functionality
+                thumb.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    e.preventDefault();
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+
+                thumb.addEventListener('touchstart', (e) => {
+                    isDragging = true;
+                    e.preventDefault();
+                    document.addEventListener('touchmove', onTouchMove);
+                    document.addEventListener('touchend', onTouchEnd);
+                });
+
+                function onMouseMove(e) {
+                    if (!isDragging) return;
+                    const rect = track.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                    snapToNearest(percentage);
+                }
+
+                function onTouchMove(e) {
+                    if (!isDragging) return;
+                    const rect = track.getBoundingClientRect();
+                    const x = e.touches[0].clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                    snapToNearest(percentage);
+                }
+
+                function onMouseUp() {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                }
+
+                function onTouchEnd() {
+                    isDragging = false;
+                    document.removeEventListener('touchmove', onTouchMove);
+                    document.removeEventListener('touchend', onTouchEnd);
+                }
+
+                function snapToNearest(percentage) {
+                    const segmentWidth = 100 / (values.length - 1);
+                    const nearestIndex = Math.round(percentage / segmentWidth);
+                    const snappedValue = values[nearestIndex];
+                    updateSlider(snappedValue);
+                }
+
+                // Initialize with default value
+                updateSlider(defaultValue);
             }
 
             // Setup both sliders
-            setupSlider(iterationsSlider, iterationsThumb, iterationsValue, iterationsInput, [1, 25, 50, 75, 100], 50);
-            setupSlider(multiplierSlider, multiplierThumb, multiplierValue, multiplierInput, [1, 5, 10], 5);
+            setupSlider('iterations-track', 'iterations-thumb', 'iterations-value', 'iterations', [1, 25, 50, 75, 100], 50);
+            setupSlider('multiplier-track', 'multiplier-thumb', 'multiplier-value', 'multiplier', [1, 5, 10], 5);
         }
 
         function renderServices() {
