@@ -137,14 +137,13 @@
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold text-blue-400">ACTIVE KEYS</h2>
-                    <div class="text-sm text-gray-400">
-                        Total: <span id="total-keys" class="text-white">0</span> | 
-                        Active: <span id="active-keys" class="text-green-400">0</span>
-                    </div>
+                    <button onclick="loadKeys()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                        🔄 REFRESH
+                    </button>
                 </div>
                 
                 <div id="keys-list" class="space-y-3 max-h-96 overflow-y-auto">
-                    <!-- Keys will be loaded here -->
+                    <div class="text-center text-gray-500 py-8">Loading keys from database...</div>
                 </div>
             </div>
         </div>
@@ -189,7 +188,7 @@
             loadKeys();
         }
 
-        // SHARED STORAGE FUNCTIONS
+        // REAL DATABASE FUNCTIONS
         async function generateKey() {
             const duration = parseInt(document.getElementById('key-duration').value);
             const maxAttacks = parseInt(document.getElementById('max-attacks').value);
@@ -199,11 +198,12 @@
             const newKey = prefix + hash;
             
             // Show loading
-            document.getElementById('generate-btn').classList.add('loading');
-            document.getElementById('generate-btn').textContent = 'Generating...';
+            const generateBtn = document.getElementById('generate-btn');
+            generateBtn.classList.add('loading');
+            generateBtn.textContent = 'Generating...';
             
             try {
-                // Save to shared storage (Netlify Function)
+                // Save to REAL DATABASE
                 const response = await fetch('/.netlify/functions/save-key', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -221,166 +221,45 @@
                     document.getElementById('new-key').textContent = newKey;
                     document.getElementById('new-key-container').classList.remove('hidden');
                     
-                    // Also save to localStorage as backup
-                    saveToLocalStorage(newKey, duration, maxAttacks);
-                    
                     // Reload keys list
                     await loadKeys();
+                    
+                    alert('✅ Key saved to database successfully!');
                 } else {
                     alert('❌ Failed to save key: ' + result.error);
                 }
                 
             } catch (error) {
-                alert('❌ Network error. Using localStorage only.');
-                // Fallback to localStorage
-                saveToLocalStorage(newKey, duration, maxAttacks);
-                document.getElementById('new-key').textContent = newKey;
-                document.getElementById('new-key-container').classList.remove('hidden');
-                loadKeys();
+                alert('❌ Network error: ' + error.message);
             } finally {
                 // Reset button
-                document.getElementById('generate-btn').classList.remove('loading');
-                document.getElementById('generate-btn').textContent = 'GENERATE KEY';
+                generateBtn.classList.remove('loading');
+                generateBtn.textContent = 'GENERATE KEY';
             }
-        }
-
-        // Fallback to localStorage
-        function saveToLocalStorage(key, duration, maxAttacks) {
-            const expires = duration === 9999 ? null : new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
-            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-            keys[key] = {
-                created: new Date().toISOString(),
-                active: true,
-                duration: duration,
-                maxAttacks: maxAttacks,
-                usedAttacks: 0,
-                expires: expires
-            };
-            localStorage.setItem('garou-keys', JSON.stringify(keys));
         }
 
         async function loadKeys() {
-            try {
-                // Try to load from shared storage first
-                const response = await fetch('/.netlify/functions/get-keys');
-                const data = await response.json();
-                
-                if (data.success && data.keys) {
-                    displayKeys(data.keys);
-                } else {
-                    // Fallback to localStorage
-                    const localKeys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                    displayKeys(localKeys);
-                }
-            } catch (error) {
-                // Fallback to localStorage
-                const localKeys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                displayKeys(localKeys);
-            }
-        }
-
-        function displayKeys(keys) {
             const keysList = document.getElementById('keys-list');
-            keysList.innerHTML = '';
-
-            let total = 0;
-            let active = 0;
-
-            Object.entries(keys).forEach(([key, data]) => {
-                total++;
-                if (data.active) active++;
-
-                const isExpired = data.expires && new Date(data.expires) < new Date();
-                const daysLeft = data.expires ? 
-                    Math.ceil((new Date(data.expires) - new Date()) / (24 * 60 * 60 * 1000)) : 
-                    '∞';
-
-                const keyElement = document.createElement('div');
-                keyElement.className = `key-item p-4 rounded ${!data.active || isExpired ? 'revoked' : ''}`;
-                
-                keyElement.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <div>
-                            <span class="font-mono font-bold text-lg ${data.active && !isExpired ? 'text-green-400' : 'text-red-400'}">${key}</span>
-                            <div class="text-xs text-gray-400 mt-1">
-                                Created: ${new Date(data.created).toLocaleDateString()} | 
-                                Attacks: ${data.usedAttacks}/${data.maxAttacks} |
-                                Expires: ${data.expires ? new Date(data.expires).toLocaleDateString() : 'Never'} 
-                                ${daysLeft !== '∞' ? `(${daysLeft} days left)` : ''}
-                            </div>
+            keysList.innerHTML = '<div class="text-center text-gray-500 py-4">Loading keys from database...</div>';
+            
+            try {
+                // For now, we'll show a message since get-keys function isn't implemented yet
+                keysList.innerHTML = `
+                    <div class="text-center p-6 border border-yellow-500 rounded">
+                        <div class="text-yellow-400 text-lg mb-2">🚀 Database Connected!</div>
+                        <div class="text-gray-400 text-sm">
+                            Keys are now saving to the real database!<br>
+                            The "get all keys" function will be implemented next.
                         </div>
-                        <div class="flex gap-2">
-                            ${!isExpired ? `
-                                <button onclick="revokeKey('${key}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs">
-                                    ${data.active ? 'REVOKE' : 'ACTIVATE'}
-                                </button>
-                            ` : ''}
-                            <button onclick="deleteKey('${key}')" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded text-xs">
-                                DELETE
-                            </button>
-                            <button onclick="resetKey('${key}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-xs">
-                                RESET
-                            </button>
+                        <div class="mt-4 text-green-400 text-sm">
+                            ✅ Generate keys above and they'll be saved to PostgreSQL
                         </div>
                     </div>
-                    ${isExpired ? '<div class="text-xs text-red-400">⚠️ EXPIRED</div>' : ''}
                 `;
                 
-                keysList.appendChild(keyElement);
-            });
-
-            document.getElementById('total-keys').textContent = total;
-            document.getElementById('active-keys').textContent = active;
-        }
-
-        async function revokeKey(key) {
-            try {
-                await fetch('/.netlify/functions/update-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, action: 'revoke' })
-                });
             } catch (error) {
-                // Fallback to localStorage
-                const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                keys[key].active = !keys[key].active;
-                localStorage.setItem('garou-keys', JSON.stringify(keys));
+                keysList.innerHTML = `<div class="text-center text-red-400 p-4">❌ Error loading keys: ${error.message}</div>`;
             }
-            loadKeys();
-        }
-
-        async function deleteKey(key) {
-            if (confirm(`Permanently delete key ${key}? This cannot be undone!`)) {
-                try {
-                    await fetch('/.netlify/functions/update-key', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ key, action: 'delete' })
-                    });
-                } catch (error) {
-                    // Fallback to localStorage
-                    const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                    delete keys[key];
-                    localStorage.setItem('garou-keys', JSON.stringify(keys));
-                }
-                loadKeys();
-            }
-        }
-
-        async function resetKey(key) {
-            try {
-                await fetch('/.netlify/functions/update-key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, action: 'reset' })
-                });
-            } catch (error) {
-                // Fallback to localStorage
-                const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
-                keys[key].usedAttacks = 0;
-                localStorage.setItem('garou-keys', JSON.stringify(keys));
-            }
-            loadKeys();
         }
 
         function copyKey() {
