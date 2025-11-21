@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garou Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        body { font-family: 'VT323', monospace; background: #0a0a0a; color: #00ffff; }
+        .terminal { border: 2px solid #ff00ff; box-shadow: 0 0 15px #ff00ff; background: #1a1a1a; }
+        .garou-glow { text-shadow: 0 0 10px #00ffff; }
+    </style>
+</head>
+<body class="p-4 flex items-center justify-center min-h-screen">
+    <div class="terminal w-full max-w-2xl p-6 rounded-lg">
+        <h1 class="text-4xl text-center font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-magenta-500 garou-glow mb-2">
+            🐺 GAROU ADMIN PANEL
+        </h1>
+        <p class="text-center text-yellow-500 mb-6">Key Management System</p>
+
+        <!-- Login Section -->
+        <div id="login-section" class="mb-6 p-4 border border-cyan-500 rounded">
+            <h3 class="text-cyan-400 mb-4">ADMIN ACCESS</h3>
+            <input type="password" id="admin-password" placeholder="Enter admin password" class="w-full p-3 bg-black border border-cyan-500 rounded text-green-400 mb-3">
+            <button onclick="login()" class="w-full bg-green-600 hover:bg-green-700 text-white p-3 rounded font-bold">
+                🔐 UNLOCK PANEL
+            </button>
+        </div>
+
+        <!-- Admin Panel (Hidden until login) -->
+        <div id="admin-panel" class="hidden">
+            <!-- Key Generation -->
+            <div class="mb-6 p-4 border border-green-500 rounded">
+                <h3 class="text-green-400 mb-4">KEY GENERATOR</h3>
+                <button onclick="generateKey()" class="w-full bg-purple-600 hover:bg-purple-700 text-white p-3 rounded font-bold mb-3">
+                    🎯 GENERATE GAROU KEY
+                </button>
+                <div id="new-key" class="hidden p-3 bg-black border border-yellow-500 rounded text-yellow-400 text-center text-xl"></div>
+            </div>
+
+            <!-- Active Keys -->
+            <div class="mb-6 p-4 border border-blue-500 rounded">
+                <h3 class="text-blue-400 mb-4">ACTIVE KEYS</h3>
+                <div id="keys-list" class="space-y-2">
+                    <!-- Keys will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="p-3 bg-gray-800 rounded">
+                    <div class="text-2xl font-bold text-cyan-400" id="total-keys">0</div>
+                    <div class="text-sm">TOTAL KEYS</div>
+                </div>
+                <div class="p-3 bg-gray-800 rounded">
+                    <div class="text-2xl font-bold text-green-400" id="active-keys">0</div>
+                    <div class="text-sm">ACTIVE KEYS</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple password protection (you can change this password)
+        const ADMIN_PASSWORD = "HaruUrara";
+        
+        function login() {
+            const password = document.getElementById('admin-password').value;
+            if (password === ADMIN_PASSWORD) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                loadKeys();
+            } else {
+                alert('❌ Invalid password!');
+            }
+        }
+
+        function generateKey() {
+            const prefix = "Garou-";
+            const hash = Math.random().toString(36).substring(2, 8);
+            const newKey = prefix + hash;
+            
+            document.getElementById('new-key').textContent = newKey;
+            document.getElementById('new-key').classList.remove('hidden');
+            
+            // Save key to localStorage (we'll replace this with Netlify Functions later)
+            saveKey(newKey);
+            loadKeys();
+        }
+
+        function saveKey(key) {
+            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+            keys[key] = {
+                created: new Date().toISOString(),
+                active: true,
+                maxAttacks: 50,
+                usedAttacks: 0
+            };
+            localStorage.setItem('garou-keys', JSON.stringify(keys));
+        }
+
+        function loadKeys() {
+            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+            const keysList = document.getElementById('keys-list');
+            keysList.innerHTML = '';
+
+            let total = 0;
+            let active = 0;
+
+            Object.entries(keys).forEach(([key, data]) => {
+                total++;
+                if (data.active) active++;
+
+                const keyElement = document.createElement('div');
+                keyElement.className = `p-3 border rounded flex justify-between items-center ${
+                    data.active ? 'border-green-500 bg-green-900/20' : 'border-red-500 bg-red-900/20'
+                }`;
+                
+                keyElement.innerHTML = `
+                    <div>
+                        <span class="font-bold ${data.active ? 'text-green-400' : 'text-red-400'}">${key}</span>
+                        <div class="text-xs text-gray-400">
+                            Created: ${new Date(data.created).toLocaleDateString()} | 
+                            Used: ${data.usedAttacks}/${data.maxAttacks} attacks
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="revokeKey('${key}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
+                            ${data.active ? 'REVOKE' : 'REACTIVATE'}
+                        </button>
+                        <button onclick="resetKey('${key}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded text-sm">
+                            RESET
+                        </button>
+                    </div>
+                `;
+                
+                keysList.appendChild(keyElement);
+            });
+
+            document.getElementById('total-keys').textContent = total;
+            document.getElementById('active-keys').textContent = active;
+        }
+
+        function revokeKey(key) {
+            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+            keys[key].active = !keys[key].active;
+            localStorage.setItem('garou-keys', JSON.stringify(keys));
+            loadKeys();
+        }
+
+        function resetKey(key) {
+            const keys = JSON.parse(localStorage.getItem('garou-keys') || '{}');
+            keys[key].usedAttacks = 0;
+            localStorage.setItem('garou-keys', JSON.stringify(keys));
+            loadKeys();
+        }
+    </script>
+</body>
+  </html>
